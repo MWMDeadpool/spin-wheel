@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OC Hivemind - Spin Wheel</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+    #wheel-container {
+      width: 95vmin;
+      height: 95vmin;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    h1 {
+      color: #6B46C1; /* Darker Purple */
+      text-shadow: 0 0 5px #6B46C1;
+    }
+    label {
+      font-size: 1.1em;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #6B46C1; /* Darker Purple */
+      color: white;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #805AD5; /* Darker Purple on hover */
+    }
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
+    input[type="file"] {
+      padding: 5px;
+      border-radius: 5px;
+      border: 1px solid #6B46C1; /* Darker Purple */
+      background: #333;
+      color: #e0e0e0;
+    }
+    #winner-display {
+      margin-top: 20px;
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #e0e0e0;
+      text-align: center;
+      height: 1.5em; /* Reserve space to prevent layout shift */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>OC Hivemind Wheel</h1>
+
+  <div id="wheel-container"></div>
+
+  <div class="controls">
+    <label for="file-input">Upload a .txt or .csv file with names:</label>
+    <input type="file" id="file-input" accept=".txt,.csv">
+    <button id="spin-button">Spin!</button>
+  </div>
+
+  <div id="winner-display"></div>
+
+  <script src="./dist/spin-wheel-iife.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const wheelContainer = document.getElementById('wheel-container');
+      const fileInput = document.getElementById('file-input');
+      const spinButton = document.getElementById('spin-button');
+      const winnerDisplay = document.getElementById('winner-display');
+
+      const initialItems = [
+        { label: 'Upload' },
+        { label: 'a file' },
+        { label: 'to start' },
+      ];
+
+      const createWheel = () => {
+        const wheel = new spinWheel.Wheel(wheelContainer, {
+          items: initialItems,
+          image: null, // No center image
+          pointerAngle: 0, // Point to the top
+          radius: 0.85, // Make wheel smaller to show border
+          lineWidth: 2,
+          lineColor: '#1a1a1a',
+          borderColor: '#6B46C1', // Darker Purple
+          borderWidth: 10,
+          itemLabelColors: ['#ffffff'], // White text
+          itemBackgroundColors: ['#000000', '#6B46C1'], // Black and dark purple
+          onSpin: () => {
+            spinButton.disabled = true;
+            winnerDisplay.textContent = '';
+          },
+          onRest: e => {
+            spinButton.disabled = false;
+            const winnerLabel = wheel.items[e.currentIndex].label;
+            winnerDisplay.textContent = `Winner: ${winnerLabel}`;
+          }
+        });
+
+        // Load and set the overlay image.
+        const overlayImage = new Image();
+        overlayImage.src = './ochm.svg';
+        overlayImage.onload = () => {
+          wheel.overlayImage = overlayImage;
+        };
+        overlayImage.onerror = () => {
+          console.error('Failed to load the overlay image.');
+        };
+
+        spinButton.addEventListener('click', () => {
+          wheel.spin(Math.random() * 500 + 500); // Random speed
+        });
+
+        fileInput.addEventListener('change', event => {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          const reader = new FileReader();
+          reader.onload = e => {
+            const content = e.target.result;
+            const lines = content.split(/\r\n|\n/);
+            let names = [];
+
+            if (file.name.endsWith('.csv')) {
+              names = lines.map(line => line.split(',')[0].trim()).filter(name => name);
+            } else {
+              names = lines.map(name => name.trim()).filter(name => name);
+            }
+
+            if (names.length === 0) {
+              alert('Could not find any names in the file.');
+              return;
+            }
+
+            const newItems = names.map(name => ({ label: name }));
+            wheel.items = newItems;
+          };
+          reader.readAsText(file);
+        });
+      };
+
+      // Create the wheel.
+      // The overlay image (ochm.svg) will still be loaded inside createWheel.
+      createWheel();
+    });
+  </script>
+</body>
+</html>
